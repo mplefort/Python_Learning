@@ -5,6 +5,8 @@ import scipy
 # import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import	StratifiedShuffleSplit
+from pandas.tools.plotting import scatter_matrix
+
 
 import os
 import sys
@@ -79,8 +81,37 @@ for	train_index, test_index	in	split.split(housing, housing["income_cat"]):
 # print(samplecomparedf.sort_index())
 
 for	set_ in	(strat_train_set, strat_test_set):
-    set_.drop("income_cat",	axis=1,	inplace=True)
+    set_.drop("income_cat",	axis=1,	inplace=True)  # remove income_cat as we only used it for stratified samples
 
 ### Discover and Visualize the Data to Gain Insights Pg. 80
 
+housing	= strat_train_set.copy() # create copy of training set to play/explore with
+## scatter plot of the data
+# housing.plot(kind="scatter", x="longitude",	y="latitude", alpha=0.4,
+#              s=housing["population"]/100, label="population", figsize=(10,7),  # radius is population size/100
+#              c="median_house_value", cmap=plt.get_cmap("jet"), colorbar=True,  # color map is housing value
+#              )
+# plt.legend()
+# plt.show()
 
+## Looking for Correlations
+# corr_matrix = housing.corr()
+# print(corr_matrix['median_house_value'].sort_values(ascending=False))  # see that median income has a linear rel with house price
+
+# attributes = ['median_house_value', 'median_income', 'total_rooms', 'housing_median_age']  # plot to make sure corr matrix zeros are actual no correlation
+# scatter_matrix(housing[attributes])
+# housing.plot(kind='scatter', x='median_income', y='median_house_value')
+# plt.show()
+
+## Experimenting with Attribute Combinations
+# housing["rooms_per_household"] = housing["total_rooms"]/housing["households"]
+# housing["bedrooms_per_room"] = housing["total_bedrooms"]/housing["total_rooms"]
+# housing["population_per_household"] = housing["population"]/housing["households"]
+
+# corr_matrix = housing.corr() # shows more correlation with "bedrooms_per_room" and "rooms_per_household"
+# print(corr_matrix['median_house_value'].sort_values(ascending=False))  # see that median income has a linear rel with house price
+
+### Prepare the Data for Machine Learning Algorithms
+
+
+print('done')
