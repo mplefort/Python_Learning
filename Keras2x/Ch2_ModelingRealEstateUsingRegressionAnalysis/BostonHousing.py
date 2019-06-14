@@ -125,3 +125,5 @@ print(mse)
 See that the regression ANN outperforms the linear regression model when comparing the MSE for the two models on
 the test data sets. Quick example to setup a dense fully connected ANN.
 '''
+
+

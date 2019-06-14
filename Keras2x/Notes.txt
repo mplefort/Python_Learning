@@ -1,0 +1,7 @@
+Keras2.x Projects
+
+9 Projects demonstartin faster experimentation of neural network and deep learning applications using Keras
+
+Author: Giuseppe Ciaburro
+
+10 projects to completer for an understanding of deep learning neural networks with Keras with a Tensorflow backend

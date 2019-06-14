@@ -1,0 +1,7 @@
+Ch. 2 Real Estate Regression
+
+    Define regression
+    Create a linear regression model
+    Multiple linear regression concepts
+    Neural networks for regression using Keras
+    Model tuning and performance improvement
