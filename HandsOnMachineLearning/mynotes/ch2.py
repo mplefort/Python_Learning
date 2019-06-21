@@ -5,15 +5,14 @@ import scipy
 # import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import	StratifiedShuffleSplit
-from pandas.tools.plotting import scatter_matrix
 
 
 import os
 import sys
 
 # Set working directory to HandsOnMachineLearing
-# os.chdir(os.path.join(os.getcwd(), 'HandsOnMachineLearning', 'mynotes') )
-os.chdir("..")
+os.chdir(os.path.join(os.getcwd(), 'HandsOnMachineLearning', 'mynotes') )
+# os.chdir("..")
 if os.path.basename(os.getcwd()) != "HandsOnMachineLearning":
     print("Current directory not \'HandsOnMachineLearning\', at %s" % os.getcwd())
     exit()
@@ -95,6 +94,7 @@ housing	= strat_train_set.copy() # create copy of training set to play/explore w
 # plt.show()
 
 ## Looking for Correlations
+# from pandas.tools.plotting import scatter_matrix
 # corr_matrix = housing.corr()
 # print(corr_matrix['median_house_value'].sort_values(ascending=False))  # see that median income has a linear rel with house price
 
