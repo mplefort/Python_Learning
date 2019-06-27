@@ -10,6 +10,7 @@ HOUSING_PATH = os.path.join("datasets", "housing")
 def load_housing_data(housing_path=HOUSING_PATH):
     csv_path = os.path.join(housing_path, "housing.csv")
     return pd.read_csv(csv_path)
+
 # set pycharm to show each column when printing
 desired_width=320
 pd.set_option('display.width', desired_width)
@@ -68,8 +69,8 @@ housing = strat_train_set.copy()
 
 """
 Correlations 
- - scatter plot hist of most correclated attributes to housing_value
- - most promsing is median income with high corellation. Detailed scatter of it shows high freq of points at the 350,
+ - scatter plot hist of most correlated attributes to housing_value
+ - most promising is median income with high correlation. Detailed scatter of it shows high freq of points at the 350,
  450, and 500 
 """
 from pandas.plotting import scatter_matrix
@@ -128,15 +129,13 @@ Custom Transformers for data cleaning
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
-rooms_ix, bedrooms_ix, population_ix, household_ix = 3, 4, 5, 6
-
-
 class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
     def __init__(self, add_bedrooms_per_room = True): # no *args or **kargs
         self.add_bedrooms_per_room = add_bedrooms_per_room
 
     def fit(self, X, y=None):
         return self # nothing else to do
+
 
     def transform(self, X, y=None):
         rooms_per_household = X[:, rooms_ix] / X[:, household_ix]
@@ -147,6 +146,7 @@ class CombinedAttributesAdder(BaseEstimator, TransformerMixin):
         else:
             return np.c_[X, rooms_per_household, population_per_household]
 
+rooms_ix, bedrooms_ix, population_ix, household_ix = 3, 4, 5, 6
 # A numpy array of the extra attribs added using a transfromer function
 attr_adder = CombinedAttributesAdder(add_bedrooms_per_room=False)
 housing_extra_attribs = attr_adder.transform(housing.values)
@@ -221,5 +221,102 @@ housing_prepared = np.concatenate([housing_prepared, housing_cat_1hot], axis=1)
 """
 ------------------------  Select and Train a model --------------------------------
 pg. 96
+
+"""
+
+"""
+Linear regression model
+"""
+from sklearn.linear_model import LinearRegression
+lin_reg = LinearRegression()
+lin_reg.fit(housing_prepared, housing_labels)
+
+#  test it on some data and measure RMSE
+from sklearn.metrics import mean_squared_error
+
+housing_predictions = lin_reg.predict(housing_prepared)
+lin_mse = mean_squared_error(housing_labels, housing_predictions)
+lin_rmse = np.sqrt(lin_mse)
+# print(lin_rmse)
+
+# Decision Tree regression model
+from sklearn.tree import DecisionTreeRegressor
+tree_reg = DecisionTreeRegressor()
+tree_reg.fit(housing_prepared, housing_labels)
+
+"""
+K fold cross validation
+    - splits training set into n subsets and trains on n-1 of them and test on 1.
+"""
+from sklearn.model_selection import cross_val_score
+
+def display_scores(scores):
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+
+scores = cross_val_score(tree_reg, housing_prepared, housing_labels,
+                         scoring="neg_mean_squared_error", cv=10)
+tree_rmse_scores = np.sqrt(-scores)
+display_scores(tree_rmse_scores)
+
+lin_scores = cross_val_score(lin_reg, housing_prepared, housing_labels,
+                             scoring="neg_mean_squared_error", cv=10)
+lin_rmse_scores = np.sqrt(-lin_scores)
+display_scores(lin_rmse_scores)
+
+
+ """
+Save and load models from sklearn
+"""
+# from sklearn.externals import joblib
+# joblib.dump(my_model, "my_model.pkl")
+# # and later...
+# my_model_loaded = joblib.load("my_model.pkl")
+
+"""
+  ------------------------------- Fine Tune Model -------------------------------------
+  
+  Grid search - hyperparameter matrix for training models and compare to find best performances
+  RandomizedSearchCV - random hyperparameter search with a simple set of # of iterations. Good for large hyperparam
+                        search space.  
+"""
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+
+param_grid = [{'n_estimators': [3, 10, 30], 'max_features': [2, 4, 6, 8]},
+              {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': [2, 3, 4]},
+              ]
+forest_reg = RandomForestRegressor()
+grid_search = GridSearchCV(forest_reg, param_grid, cv=5,
+                           scoring='neg_mean_squared_error')
+grid_search.fit(housing_prepared, housing_labels)
+
+# print best model found
+print(grid_search.best_estimator_)
+cvres = grid_search.cv_results_
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print(np.sqrt(-mean_score), params)
+
+
+""" 
+Analyze data from model
+
+"""
+
+feature_importances = grid_search.best_estimator_.feature_importances_
+extra_attribs = ["rooms_per_hhold", "pop_per_hhold", "bedrooms_per_room"]
+cat_one_hot_attribs = list(encoder.classes_)
+attributes = num_attribs + extra_attribs + cat_one_hot_attribs
+print(sorted(zip(feature_importances, attributes), reverse=True))
+
+
+"""
+Monitor the live system
+    - Monitor inputs for large changes
+        - stale upstream data
+        - malfunctioning sensor
+    - Retrain on fresh data to avoid becoming stale or "rotting model"
+    
 
 """
