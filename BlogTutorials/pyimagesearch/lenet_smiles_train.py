@@ -12,6 +12,11 @@ import imutils
 import cv2
 import os
 
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
+
 dataset_path = 'D:\matth\Documents\projects\python\datasets\SMILEsmileD\SMILEs'
 output_path = 'D:\matth\Documents\projects\python\models\lenet_smiles_model\lenet_smiles.hdf5'
 
