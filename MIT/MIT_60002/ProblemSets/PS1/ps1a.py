@@ -24,8 +24,15 @@ def load_cows(filename):
     Returns:
     a dictionary of cow name (string), weight (int) pairs
     """
-    # TODO: Your code here
-    pass
+
+    cow_dict = {}
+    file = open(filename, "r")
+    for line in file:
+        cow_dict[line.split(",")[0]] =  int(line.split(",")[1][0])
+    # print(cow_dict)
+
+    file.close()
+    return cow_dict
 
 # Problem 2
 def greedy_cow_transport(cows,limit=10):
@@ -50,8 +57,25 @@ def greedy_cow_transport(cows,limit=10):
     transported on a particular trip and the overall list containing all the
     trips
     """
-    # TODO: Your code here
-    pass
+    trips = []
+    trip = []
+    remain_space = limit
+    sorted_cows = sorted(cows.items(), key=lambda kv: kv[1], reverse=True)
+    print(sorted_cows)
+    for cow in sorted_cows:
+        if cow[1] < remain_space:
+            trip.append(cow[0])
+            remain_space -= cow[1]
+        else:
+            trips.append(trip)
+            trip = []
+            remain_space = limit
+            if cow[1] < remain_space:
+                trip.append(cow[0])
+                remain_space -= cow[1]
+    print(trips)
+
+    return trips
 
 # Problem 3
 def brute_force_cow_transport(cows,limit=10):
@@ -94,3 +118,9 @@ def compare_cow_transport_algorithms():
     """
     # TODO: Your code here
     pass
+
+cows1 = load_cows('ps1_cow_data.txt')
+cows2 = load_cows('ps1_cow_data_2.txt')
+
+greedy_cow_transport(cows1, limit=10)
+greedy_cow_transport(cows2, limit=10)
