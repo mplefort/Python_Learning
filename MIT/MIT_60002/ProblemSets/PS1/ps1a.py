@@ -32,6 +32,7 @@ def load_cows(filename):
     # print(cow_dict)
 
     file.close()
+    print(filename, ": ", cow_dict)
     return cow_dict
 
 # Problem 2
@@ -73,7 +74,10 @@ def greedy_cow_transport(cows,limit=10):
             if cow[1] < remain_space:
                 trip.append(cow[0])
                 remain_space -= cow[1]
+    if trip:
+        trips.append(trip)
     print(trips)
+    print("Trips #: {} -- trips: {}".format(len(trips), trips))
 
     return trips
 
@@ -99,8 +103,21 @@ def brute_force_cow_transport(cows,limit=10):
     transported on a particular trip and the overall list containing all the
     trips
     """
-    # TODO: Your code here
-    pass
+
+    for cow_partition in get_partitions(cows):
+        weight_limit_breached = False
+        for set in cow_partition:
+            weight = 0
+            for cow in set:
+                weight += cows.get(cow)
+            if weight > limit:
+                weight_limit_breached = True
+
+        if not weight_limit_breached:
+            print("Trips #: {} -- trips: {}".format(len(cow_partition), cow_partition))
+            return cow_partition
+
+
         
 # Problem 4
 def compare_cow_transport_algorithms():
@@ -116,11 +133,24 @@ def compare_cow_transport_algorithms():
     Returns:
     Does not return anything.
     """
-    # TODO: Your code here
+    cows1 = load_cows('ps1_cow_data.txt')
+    cows2 = load_cows('ps1_cow_data_2.txt')
+    print()
+    timer(greedy_cow_transport, cows1, 10)
+    print()
+    timer(greedy_cow_transport, cows2, 10)
+    print()
+    print()
+    timer(brute_force_cow_transport, cows1, 10)
+    print()
+    timer(brute_force_cow_transport, cows2, 10)
     pass
 
-cows1 = load_cows('ps1_cow_data.txt')
-cows2 = load_cows('ps1_cow_data_2.txt')
+def timer(func, cow_data, limit=10):
+    start = time.time()
+    func(cow_data, limit=10)
+    end = time.time()
+    print(end - start)
 
-greedy_cow_transport(cows1, limit=10)
-greedy_cow_transport(cows2, limit=10)
+
+compare_cow_transport_algorithms()
