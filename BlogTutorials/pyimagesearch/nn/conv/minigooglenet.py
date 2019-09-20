@@ -10,6 +10,7 @@ from keras.layers import Input
 from keras.layers import concatenate # concatenate layer outputs along the channel dim
 from keras.models import Model  # ilo of sequential where output of 1 is input to next
 from keras import backend as K
+from keras.regularizers import l2  #consider adding to see reduction of overfitting benefit, see mini2_googlenet for implementation
 
 
 class MiniGoogLeNet:

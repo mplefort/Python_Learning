@@ -9,9 +9,11 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import LearningRateScheduler
 from keras.optimizers import SGD
 from keras.datasets import cifar10
+from sklearn.metrics import classification_report
 
 import numpy as np
 import os
+# TODO: try L2 weight regularization to combat overfitting? see seciton 11.3
 
 # Globals
 NUM_EPOCHS = 70
@@ -52,7 +54,7 @@ aug = ImageDataGenerator(width_shift_range=0.1,
                          fill_mode="nearest")
 
 # callbacks
-figPath = os.path.sep.join([log_output, "{}.png",format(os.getpid())])
+figPath = os.path.sep.join([log_output, "{}.png".format(os.getpid())])
 jsonPath = os.path.sep.join([log_output, "{}.json".format(os.getpid())])
 callbacks = [TrainingMonitor(figPath=figPath,
                              jsonPath=jsonPath,
@@ -69,8 +71,8 @@ model.compile(optimizer=opt,
 
 # train
 print("Training model...")
-model.fit_generator(aug.flow(trainX, trainY, batch_size=64),
-                    steps_per_epoch=len(trainX) // 64,
+model.fit_generator(aug.flow(trainX, trainY, batch_size=96),
+                    steps_per_epoch=len(trainX) // 96,
                     epochs=NUM_EPOCHS,
                     verbose=1,
                     callbacks=callbacks,
@@ -78,3 +80,12 @@ model.fit_generator(aug.flow(trainX, trainY, batch_size=64),
 
 print("save network")
 model.save(model_output)
+
+# evaulation
+labelNames = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+print("[INFO] evaluating mdoel ...")
+predictions = model.predict(testX, batch_size=96)
+print(classification_report(testY.argmax(axis=1),
+                            predictions.argmax(axis=1),
+                            target_names=labelNames)
+      )
