@@ -580,16 +580,16 @@ def simulation_with_antibiotic(num_bacteria,
     avg_pop = [calc_pop_avg(populations, i) for i in range(len(populations[0]))]
     avg_res = [calc_pop_avg(resistant_pop, i) for i in range(len(resistant_pop[0]))]
     make_two_curve_plot(range(400), avg_pop, avg_res, "avg pop", "res pop", "time", "pop", "populations")
-    return (avg_pop, resistant_bacteria)
+    return (avg_pop, avg_res)
 # When you are ready to run the simulations, uncomment the next lines one
 # at a time
-total_pop, resistant_pop = simulation_with_antibiotic(num_bacteria=100,
-                                                      max_pop=1000,
-                                                      birth_prob=0.3,
-                                                      death_prob=0.2,
-                                                      resistant=False,
-                                                      mut_prob=0.8,
-                                                      num_trials=50)
+# total_pop, resistant_pop = simulation_with_antibiotic(num_bacteria=100,
+#                                                       max_pop=1000,
+#                                                       birth_prob=0.3,
+#                                                       death_prob=0.2,
+#                                                       resistant=False,
+#                                                       mut_prob=0.8,
+#                                                       num_trials=50)
 
 total_pop, resistant_pop = simulation_with_antibiotic(num_bacteria=100,
                                                       max_pop=1000,
