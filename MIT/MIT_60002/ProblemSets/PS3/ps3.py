@@ -201,7 +201,7 @@ class Robot(object):
     Subclasses of Robot should provide movement strategies by implementing
     update_position_and_clean, which simulates a single time-step.
     """
-    def __init__(self, room, speed, capacity):
+    def __init__(self, room: RectangularRoom, speed: float, capacity: int):
         """
         Initializes a Robot with the given speed and given cleaning capacity in the 
         specified room. The robot initially has a random direction and a random 
@@ -212,36 +212,42 @@ class Robot(object):
         capacity: a positive integer; the amount of dirt cleaned by the robot
                   in a single time-step
         """
-        raise NotImplementedError
+        self.room = room
+        assert speed > 0.0
+        self.speed = speed
+        self.capacity = int (capacity)
+
+        self.position = self.room.get_random_position()
+        self.direction = random.random() * 360.0
 
     def get_robot_position(self):
         """
         Returns: a Position object giving the robot's position in the room.
         """
-        raise NotImplementedError
+        return self.position
 
     def get_robot_direction(self):
         """
         Returns: a float d giving the direction of the robot as an angle in
         degrees, 0.0 <= d < 360.0.
         """
-        raise NotImplementedError
+        return self.direction
 
-    def set_robot_position(self, position):
+    def set_robot_position(self, position: Position):
         """
         Set the position of the robot to position.
 
         position: a Position object.
         """
-        raise NotImplementedError
+        self.position = position
 
-    def set_robot_direction(self, direction):
+    def set_robot_direction(self, direction: float):
         """
         Set the direction of the robot to direction.
 
         direction: float representing an angle in degrees
         """
-        raise NotImplementedError
+        self.direction = direction
 
     def update_position_and_clean(self):
         """
@@ -259,25 +265,34 @@ class EmptyRoom(RectangularRoom):
     """
     An EmptyRoom represents a RectangularRoom with no furniture.
     """
+    def __init__(self, width, height, dirt_amount):
+        super().__init__(width, height, dirt_amount)
+
     def get_num_tiles(self):
         """
         Returns: an integer; the total number of tiles in the room
         """
-        raise NotImplementedError
+        return int(self.width * self.height)
         
-    def is_position_valid(self, pos):
+    def is_position_valid(self, pos: Position):
         """
         pos: a Position object.
         
         Returns: True if pos is in the room, False otherwise.
         """
-        raise NotImplementedError
-        
+
+        x = int( math.floor(pos.get_x()))
+        y = int( math.floor(pos.get_y()))
+
+        return (x, y) in self.tiles.keys()
+
     def get_random_position(self):
         """
         Returns: a Position object; a valid random position (inside the room).
         """
-        raise NotImplementedError
+        x = random.random() * float(self.width)
+        y = random.random() * float(self.height)
+        return Position(x,y)
 
 class FurnishedRoom(RectangularRoom):
     """
@@ -324,35 +339,51 @@ class FurnishedRoom(RectangularRoom):
         """
         Return True if tile (m, n) is furnished.
         """
-        raise NotImplementedError
-        
-    def is_position_furnished(self, pos):
+        return (m, n) in self.furniture_tiles
+
+    def is_position_furnished(self, pos: Position):
         """
         pos: a Position object.
 
         Returns True if pos is furnished and False otherwise
         """
-        raise NotImplementedError
-        
+        x = int(math.floor(pos.get_x()))
+        y = int(math.floor(pos.get_y()))
+
+        return self.is_tile_furnished(x, y)
+
     def is_position_valid(self, pos):
         """
         pos: a Position object.
         
         returns: True if pos is in the room and is unfurnished, False otherwise.
         """
-        raise NotImplementedError
-        
+
+        x = int( math.floor(pos.get_x()))
+        y = int( math.floor(pos.get_y()))
+
+        if not self.is_position_furnished(pos):
+            return (x, y) in self.tiles.keys()
+        else:
+            return False
+
     def get_num_tiles(self):
         """
         Returns: an integer; the total number of tiles in the room that can be accessed.
         """
-        raise NotImplementedError
+        return int(self.width * self.height) - int( len(self.furniture_tiles))
         
     def get_random_position(self):
         """
-        Returns: a Position object; a valid random position (inside the room and not in a furnished area).
+        Return`s: a Position object; a valid random position (inside the room and not in a furnished area).
         """
-        raise NotImplementedError
+        tile_copy = self.tiles.copy()
+        # get all non-furnished tiles
+        for tile in self.furniture_tiles:
+            if tile in tile_copy.keys():
+                del tile_copy[tile]
+        (x,y) = random.choice(list(tile_copy.keys()))
+        return Position(x,y)
 
 # === Problem 3
 class StandardRobot(Robot):
@@ -363,6 +394,9 @@ class StandardRobot(Robot):
     direction; when it would hit a wall or furtniture, it *instead*
     chooses a new direction randomly.
     """
+
+    # def __init__(self):
+    #     super().__init__()
     def update_position_and_clean(self):
         """
         Simulate the raise passage of a single time-step.
@@ -371,11 +405,19 @@ class StandardRobot(Robot):
         rotate once to a random new direction, and stay stationary) and clean the dirt on the tile
         by its given capacity. 
         """
-        raise NotImplementedError
+
+        position = self.position.get_new_position(self.direction, self.speed)
+        if not self.room.is_position_valid(position):
+            self.set_robot_direction(random.random() * 360.0)
+        else:
+            self.position = position
+            self.room.clean_tile_at_position(self.position, self.capacity)
+
+
 
 # Uncomment this line to see your implementation of StandardRobot in action!
-#test_robot_movement(StandardRobot, EmptyRoom)
-#test_robot_movement(StandardRobot, FurnishedRoom)
+# test_robot_movement(StandardRobot, EmptyRoom)
+# test_robot_movement(StandardRobot, FurnishedRoom)
 
 # === Problem 4
 class FaultyRobot(Robot):
@@ -415,10 +457,20 @@ class FaultyRobot(Robot):
         StandardRobot at this time-step (checking if it can move to a new position,
         move there if it can, pick a new direction and stay stationary if it can't)
         """
-        raise NotImplementedError
+        if self.gets_faulty():
+            self.set_robot_direction(random.random() * 360.0)
+            return
+        else:
+            position = self.position.get_new_position(self.direction, self.speed)
+            if not self.room.is_position_valid(position):
+                self.set_robot_direction(random.random() * 360.0)
+            else:
+                self.position = position
+                self.room.clean_tile_at_position(self.position, self.capacity)
+
         
     
-#test_robot_movement(FaultyRobot, EmptyRoom)
+# test_robot_movement(FaultyRobot, EmptyRoom)
 
 # === Problem 5
 def run_simulation(num_robots, speed, capacity, width, height, dirt_amount, min_coverage, num_trials,
@@ -442,8 +494,28 @@ def run_simulation(num_robots, speed, capacity, width, height, dirt_amount, min_
     robot_type: class of robot to be instantiated (e.g. StandardRobot or
                 FaultyRobot)
     """
-    raise NotImplementedError
+    trial_time = []
+    for trial in range(num_trials):
 
+        room = EmptyRoom(width, height, dirt_amount)
+        robots = []
+        for i in range(num_robots):
+            robots.append(robot_type(room, speed, capacity))
+        coverage = room.get_num_cleaned_tiles() / room.get_num_tiles()
+        time_steps = 0
+        # anim = ps3_visualize.RobotVisualization(num_robots, width, height, [])
+        while coverage < min_coverage:
+            time_steps += 1
+            for robot in robots:
+                robot.update_position_and_clean()
+                # anim.update(room, robots)
+                coverage = float(room.get_num_cleaned_tiles()) / room.get_num_tiles()
+        # anim.done()
+
+        trial_time.append(time_steps)
+
+    mean_time = sum(trial_time)/float(len(trial_time))
+    return mean_time
 
 # print ('avg time steps: ' + str(run_simulation(1, 1.0, 1, 5, 5, 3, 1.0, 50, StandardRobot)))
 # print ('avg time steps: ' + str(run_simulation(1, 1.0, 1, 10, 10, 3, 0.8, 50, StandardRobot)))
@@ -475,8 +547,8 @@ def show_plot_compare_strategies(title, x_label, y_label):
     times2 = []
     for num_robots in num_robot_range:
         print ("Plotting", num_robots, "robots...")
-        times1.append(run_simulation(num_robots, 1.0, 1, 20, 20, 3, 0.8, 20, StandardRobot))
-        times2.append(run_simulation(num_robots, 1.0, 1, 20, 20, 3, 0.8, 20, FaultyRobot))
+        times1.append(run_simulation(num_robots, 1.0, 1, 20, 20, 3, 0.25, 20, StandardRobot))
+        times2.append(run_simulation(num_robots, 1.0, 1, 20, 20, 3, 0.25, 20, FaultyRobot))
     plt.plot(num_robot_range, times1)
     plt.plot(num_robot_range, times2)
     plt.title(title)
@@ -493,7 +565,7 @@ def show_plot_room_shape(title, x_label, y_label):
     times1 = []
     times2 = []
     for width in [10, 20, 25, 50]:
-        height = 300/width
+        height = int (300/width)
         print ("Plotting cleaning time for a room of width:", width, "by height:", height)
         aspect_ratios.append(float(width) / height)
         times1.append(run_simulation(2, 1.0, 1, width, height, 3, 0.8, 200, StandardRobot))
@@ -507,5 +579,5 @@ def show_plot_room_shape(title, x_label, y_label):
     plt.show()
 
 
-#show_plot_compare_strategies('Time to clean 80% of a 20x20 room, for various numbers of robots','Number of robots','Time / steps')
-#show_plot_room_shape('Time to clean 80% of a 300-tile room for various room shapes','Aspect Ratio', 'Time / steps')
+# show_plot_compare_strategies('Time to clean 80% of a 20x20 room, for various numbers of robots','Number of robots','Time / steps')
+# show_plot_room_shape('Time to clean 80% of a 300-tile room for various room shapes','Aspect Ratio', 'Time / steps')

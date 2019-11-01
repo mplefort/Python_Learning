@@ -10,7 +10,7 @@ import imp
 
 # test = imp.load_compiled("test", "test.pyc")
 from MIT.MIT_60002.ProblemSets.PS3 import ps3
-from MIT.MIT_60002.ProblemSets.PS3.ps3 import Position, RectangularRoom
+from MIT.MIT_60002.ProblemSets.PS3.ps3 import Position, RectangularRoom, EmptyRoom, FurnishedRoom, Robot, FaultyRobot, StandardRobot
 
 def xyrange(x_upper_bound, y_upper_bound):
     """ Returns the cartesian product of range(x_upper_bound) and range(y_upper_bound).
