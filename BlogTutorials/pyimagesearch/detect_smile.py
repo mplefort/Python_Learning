@@ -47,7 +47,7 @@ while True:
             cv2.rectangle(frameClone, (fX, fY), (fX+fW, fY+fH), (0, 0, 255), 2)
 
         # outpt frame
-        cv2.imshow("Face", frameClone)
+            cv2.imshow("Face", frameClone)
 
         fps = 30
         secpframe = 1 / fps
