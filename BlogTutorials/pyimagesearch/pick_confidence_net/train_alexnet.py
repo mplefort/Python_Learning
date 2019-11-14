@@ -2,6 +2,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
 from BlogTutorials.pyimagesearch.callbacks.trainingmonitor import TrainingMonitor
 from BlogTutorials.pyimagesearch.preprocessing.imagetoarraypreprocessor import ImageToArrayPreprocessor
 from BlogTutorials.pyimagesearch.preprocessing.aspectawarepreprocessing import AspectAwarePreprocessor
@@ -46,9 +47,9 @@ def normalize_data(data):
     # normalize data [0, 1]
     return  (data - np.min(data)) / (np.ptp(data))
 
-epochs = 2
-dataset_path = r"/home/matthewlefort/Documents/gitRepos/bella_training/pick_confidence_net/Depth"
-output_path = r"/home/matthewlefort/Documents/gitRepos/bella_training/pick_confidence_net/model"
+epochs = 50
+dataset_path = r"D:\matth\Documents\projects\python\DL_Projects\Pluckt\pick_confidence_net\data"
+output_path = r"D:\matth\Documents\projects\python\DL_Projects\Pluckt\pick_confidence_net\models"
 
 # get class labels
 imagePaths = list(paths.list_images(dataset_path))
@@ -59,7 +60,6 @@ classNames = [str(x) for x in np.unique(classNames)]
 # init preprocessors
 roip = ROIPreprocessor(xmin=0, xmax=120, ymin=160, ymax=320)
 aap = AspectAwarePreprocessor(227, 227)
-
 iap = ImageToArrayPreprocessor()
 
 # load the dataset from disk then scale the raw pixels
@@ -84,7 +84,7 @@ classWeight = float(classTotals.max()) / classTotals
 
 # Optimizer
 print("[info] compiling model...")
-opt = Adam(lr=1e-5)
+opt = Adam(lr=1e-4)
 model = Alexnet.build(width=227,
                       height=227,
                       depth=1,
@@ -94,10 +94,10 @@ model.compile(loss="binary_crossentropy",
               optimizer=opt,
               metrics=["accuracy"])
 
-fname = os.path.sep.join([output_path, "weights-{epoch:03d}-{val_loss:.4f}.hdf5"])
-# fname = os.path.sep.join([output_path, "bestmodel.hdf5"])
+# model_path = os.path.sep.join([output_path, "weights-{epoch:03d}-{val_acc:.4f}.hdf5"])
+model_path = os.path.sep.join([output_path, "bestmodel.hdf5"])
 # monitor optios are val_loss, val_acc, train_loss, train_acc, etc. mode="max/min"
-checkpoint = ModelCheckpoint(fname, monitor="val_loss", mode="min", save_best_only=True, verbose=1)
+checkpoint = ModelCheckpoint(model_path, monitor="val_acc", mode="max", save_best_only=True, verbose=1)
 figPath = os.path.sep.join([output_path, "{}.png".format(os.getpid())])
 jsonPath = os.path.sep.join([output_path, "{}.json".format(os.getpid())])
 callbacks = [checkpoint, TrainingMonitor(figPath, jsonPath=jsonPath)]
@@ -106,22 +106,35 @@ callbacks = [checkpoint, TrainingMonitor(figPath, jsonPath=jsonPath)]
 # train
 H = model.fit(trainX, trainY, validation_data=(testX, testY), batch_size=10, epochs=epochs, callbacks=callbacks, verbose=1)
 
-predictions = model.predict(testX, batch_size=2)
+# Load best model from training and make predictions on it
+model = load_model(model_path)
+predictions = model.predict(testX, batch_size=10)
 print(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
-print("[info] saving mdoel...")
-modelfn = os.path.sep.join([output_path, "final_model.hdf5"])
-model.save(modelfn)
 
 plt.style.use("ggplot")
-plt.figure()
-plt.plot(np.arange(0, epochs), H.history["loss"], label="train_loss")
-plt.plot(np.arange(0, epochs), H.history["val_loss"], label="val_loss")
-plt.plot(np.arange(0, epochs), H.history["acc"], label="train_acc")
-plt.plot(np.arange(0, epochs), H.history["val_acc"], label="val_acc")
-plt.title("Training Loss and Accuracy")
+acc = H.history['acc']
+val_acc = H.history['val_acc']
+loss = H.history['loss']
+val_loss = H.history['val_loss']
+
+epochs = range(1, len(acc) + 1)
+plt.plot(epochs, acc, 'bo', label='Training acc')
+plt.plot(epochs, val_acc, 'b', label='Validation acc')
+plt.title("Training and Validation and Accuracy")
 plt.xlabel("Epoch #")
-plt.ylabel("Loss/Accuracy")
+plt.ylabel("Accuracy")
+plt.savefig(os.path.sep.join([output_path, "Acc.png"]))
+plt.close()
+
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title("Training and Validation and Loss")
+plt.xlabel("Epoch #")
+plt.ylabel("loss")
 plt.legend()
-plt.show()
+plt.savefig(os.path.sep.join([output_path, "Loss.png"]))
+plt.close()
+
 
 
