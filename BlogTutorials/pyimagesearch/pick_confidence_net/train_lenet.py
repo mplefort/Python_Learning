@@ -8,7 +8,8 @@ from BlogTutorials.pyimagesearch.preprocessing.imagetoarraypreprocessor import I
 from BlogTutorials.pyimagesearch.preprocessing.aspectawarepreprocessing import AspectAwarePreprocessor
 from BlogTutorials.pyimagesearch.preprocessing.ROIpreprocessor import ROIPreprocessor
 from BlogTutorials.pyimagesearch.datasets.simpledatasetloader import SimpleDatasetLoader
-from BlogTutorials.pyimagesearch.nn.conv.alexnet import Alexnet
+# from BlogTutorials.pyimagesearch.nn.conv.alexnet import Alexnet
+from BlogTutorials.pyimagesearch.nn.conv.lenet import LeNet
 from keras.optimizers import Adam
 from keras.optimizers import SGD
 from keras.utils import np_utils
@@ -47,9 +48,8 @@ def normalize_data(data):
     # normalize data [0, 1]
     return  (data - np.min(data)) / (np.ptp(data))
 
-epochs = 200
+epochs = 50
 dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
-# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
 output_path = r"H:\Datasets\Pluckt\pick_confidence_net\models"
 
 # get class labels
@@ -60,7 +60,7 @@ classNames = [str(x) for x in np.unique(classNames)]
 
 # init preprocessors
 roip = ROIPreprocessor(xmin=0, xmax=120, ymin=160, ymax=320)
-aap = AspectAwarePreprocessor(227, 227)
+aap = AspectAwarePreprocessor(28, 28)
 iap = ImageToArrayPreprocessor()
 
 # load the dataset from disk then scale the raw pixels
@@ -86,14 +86,8 @@ classWeight = float(classTotals.max()) / classTotals
 # Optimizer
 print("[info] compiling model...")
 opt = Adam(lr=1e-4)
-model = Alexnet.build(width=227,
-                      height=227,
-                      depth=1,
-                      classes=2,
-                      reg=0.002)
-model.compile(loss="binary_crossentropy",
-              optimizer=opt,
-              metrics=["accuracy"])
+model = LeNet.build(width=28, height=28, depth=1, classes=2)
+model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 # model_path = os.path.sep.join([output_path, "weights-{epoch:03d}-{val_acc:.4f}.hdf5"])
 model_path = os.path.sep.join([output_path, "bestmodel.hdf5"])
@@ -105,7 +99,7 @@ callbacks = [checkpoint, TrainingMonitor(figPath, jsonPath=jsonPath)]
 
 
 # train
-H = model.fit(trainX, trainY, validation_data=(testX, testY), batch_size=20, epochs=epochs, callbacks=callbacks, verbose=1)
+H = model.fit(trainX, trainY, validation_data=(testX, testY), batch_size=10, epochs=epochs, callbacks=callbacks, verbose=1)
 
 # Load best model from training and make predictions on it
 model = load_model(model_path)
@@ -124,7 +118,6 @@ plt.plot(epochs, val_acc, 'b', label='Validation acc')
 plt.title("Training and Validation and Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Accuracy")
-plt.legend()
 plt.savefig(os.path.sep.join([output_path, "Acc.png"]))
 plt.close()
 

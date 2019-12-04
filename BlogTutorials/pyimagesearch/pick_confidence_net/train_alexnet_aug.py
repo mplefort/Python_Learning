@@ -16,7 +16,7 @@ from imutils import paths
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+from keras.preprocessing.image import ImageDataGenerator
 
 """
     Alexnet net trained on depth maps for mushrooms/end tool in frame. Attempts binary classification of a depth map,
@@ -43,14 +43,19 @@ import os
 """
 
 
-def normalize_data(data):
+def normalize_depth(data):
     # normalize data [0, 1]
     return  (data - np.min(data)) / (np.ptp(data))
 
-epochs = 200
-dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
-# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
+def normalize_rgb(data):
+    return data.astype("float") / 255.0
+
+epochs = 100
+# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
+dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
 output_path = r"H:\Datasets\Pluckt\pick_confidence_net\models"
+
+checkpoint_model_path = r"H:\Datasets\Pluckt\pick_confidence_net\models\alex_net\891_Examples_RGB\2_aug\bestmodel.hdf5"
 
 # get class labels
 imagePaths = list(paths.list_images(dataset_path))
@@ -64,16 +69,27 @@ aap = AspectAwarePreprocessor(227, 227)
 iap = ImageToArrayPreprocessor()
 
 # load the dataset from disk then scale the raw pixels
-sdl = SimpleDatasetLoader(preprocessors=[roip, aap, iap], img_load="mat")
+sdl = SimpleDatasetLoader(preprocessors=[roip, aap, iap]) #, img_load="mat")
 (data, labels) = sdl.load(imagePaths=imagePaths, verbose=250)
-data = normalize_data(data)
+data = normalize_depth(data)
+
+# add data augmentation with image generator from keras.preprocessing.image import ImageDataGenerator
+aug = ImageDataGenerator(rotation_range=0.0, # randomly rotate +/- 30 deg
+                         width_shift_range=0.2, # translate by 0.1
+                         height_shift_range=0.05,
+                         shear_range=0.0, # shear by 0.2
+                         zoom_range=0.0, # zoom by [0.8 - 1.2] factory
+                         horizontal_flip=False,
+                         fill_mode="nearest",
+                         cval=0.0)
+
+# encode labels
 labels = np.array(labels)
 le = LabelEncoder()
 le.fit(labels)
 labels = np_utils.to_categorical(le.transform(labels), 2)
 
 # accouunt for the skew in data labels. Used to amplifiy training weights of "smiling" case given the ratio of
-# [9475 to 3690] (non smiling to smiling)
 classTotals = labels.sum(axis=0)
 classWeight = float(classTotals.max()) / classTotals
 
@@ -88,12 +104,14 @@ print("[info] compiling model...")
 opt = Adam(lr=1e-4)
 model = Alexnet.build(width=227,
                       height=227,
-                      depth=1,
+                      depth=3,
                       classes=2,
-                      reg=0.002)
+                      reg=0.0002)
 model.compile(loss="binary_crossentropy",
               optimizer=opt,
               metrics=["accuracy"])
+# print("loading model {}...".format(checkpoint_model_path))
+# model = load_model(checkpoint_model_path)
 
 # model_path = os.path.sep.join([output_path, "weights-{epoch:03d}-{val_acc:.4f}.hdf5"])
 model_path = os.path.sep.join([output_path, "bestmodel.hdf5"])
@@ -105,11 +123,24 @@ callbacks = [checkpoint, TrainingMonitor(figPath, jsonPath=jsonPath)]
 
 
 # train
-H = model.fit(trainX, trainY, validation_data=(testX, testY), batch_size=20, epochs=epochs, callbacks=callbacks, verbose=1)
+# H = model.fit(trainX,
+#               trainY,
+#               validation_data=(testX, testY),
+#               batch_size=32,
+#               epochs=epochs,
+#               callbacks=callbacks,
+#               verbose=1)
+
+H = model.fit_generator(aug.flow(trainX, trainY, batch_size=32),
+                        validation_data=(testX, testY),
+                        steps_per_epoch=len(trainX) // 32,
+                        epochs=epochs,
+                        callbacks=callbacks,
+                        verbose=1)
 
 # Load best model from training and make predictions on it
 model = load_model(model_path)
-predictions = model.predict(testX, batch_size=10)
+predictions = model.predict(testX, batch_size=32)
 print(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
 
 plt.style.use("ggplot")

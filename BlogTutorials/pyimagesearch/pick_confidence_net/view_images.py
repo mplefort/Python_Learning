@@ -3,7 +3,7 @@ import matplotlib.image as mpimg
 from imutils import paths
 import matplotlib.animation as animation
 
-dataset_path = r"D:\matth\Documents\projects\python\DL_Projects\Pluckt\pick_confidence_net\data"
+dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
 imagePaths = list(paths.list_images(dataset_path))
 
 

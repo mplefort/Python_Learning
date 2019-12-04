@@ -95,10 +95,12 @@ class ResNet:
         inputs = Input(shape=inputShape)
         x = BatchNormalization(axis=chanDim, epsilon=bnEps, momentum=bnMom)(inputs)
 
+        x = Conv2D(filters=64, kernel_size=(7,7), strides=(2,2), use_bias=False, kernel_regularizer=l2(reg))(x)
+        x = MaxPooling2D((3,3),(2,2))(x)
+
         #if cifar dataset apply a single conv
         if dataset == "cifar":
             x = Conv2D(filters[0], (3,3), use_bias=False, padding="same", kernel_regularizer=l2(reg))(x)
-
         for i in range(0, len(stages)):
             stride = (1, 1) if i == 0 else (2, 2)
             x = ResNet.residual_module(x, filters[i+1], stride, chanDim,
@@ -111,7 +113,7 @@ class ResNet:
         # will reduce to (8x8xclasses)???
         x = BatchNormalization(axis=chanDim, epsilon=bnEps, momentum=bnMom)(x)
         x = Activation("relu")(x)
-        x = AveragePooling2D((8, 8))(x)
+        x = AveragePooling2D((7, 7))(x)
 
         x = Flatten()(x)
         x = Dense(classes, kernel_regularizer=l2(reg))(x)
