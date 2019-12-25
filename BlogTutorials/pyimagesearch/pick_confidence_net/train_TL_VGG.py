@@ -8,15 +8,18 @@ from BlogTutorials.pyimagesearch.preprocessing.imagetoarraypreprocessor import I
 from BlogTutorials.pyimagesearch.preprocessing.aspectawarepreprocessing import AspectAwarePreprocessor
 from BlogTutorials.pyimagesearch.preprocessing.ROIpreprocessor import ROIPreprocessor
 from BlogTutorials.pyimagesearch.datasets.simpledatasetloader import SimpleDatasetLoader
-from BlogTutorials.pyimagesearch.nn.conv.alexnet import Alexnet
-from keras.optimizers import Adam
-from keras.optimizers import SGD
+# from BlogTutorials.pyimagesearch.nn.conv.alexnet import Alexnet
+from keras.applications import VGG16
+from keras import models, layers
+from keras.optimizers import Adam, RMSprop, SGD
 from keras.utils import np_utils
 from imutils import paths
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 from keras.preprocessing.image import ImageDataGenerator
+from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l2 # L2 normalization weight decay to cost function
 
 """
     Alexnet net trained on depth maps for mushrooms/end tool in frame. Attempts binary classification of a depth map,
@@ -49,14 +52,37 @@ def normalize_depth(data):
 
 def normalize_rgb(data):
     return data.astype("float") / 255.0
+#
 
-epochs = 200
-dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
-# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
+conv_base = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+model = models.Sequential()
+model.add(conv_base)
+model.add(layers.Flatten())
+model.add(layers.Dense(units=256,
+                kernel_regularizer=l2(0.002)))
+model.add(layers.Activation("relu"))
+model.add(BatchNormalization())
+model.add(layers.Dropout(0.5))
+
+# 5. FC => RELU
+# model.add(layers.Dense(units=512,
+#                 kernel_regularizer=l2(0.002)))
+# model.add(layers.Activation("relu"))
+# model.add(BatchNormalization())
+# model.add(layers.Dropout(0.5))
+
+# 6. softmax classifer
+model.add(layers.Dense(2, kernel_regularizer=l2(0.002)))
+model.add(layers.Activation("softmax"))
+# Freeze base for initial training
+conv_base.trainable = False
+
+epochs = 100
+# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
+dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
 output_path = r"H:\Datasets\Pluckt\pick_confidence_net\models"
 
-checkpoint_model_path = r"H:\Datasets\Pluckt\pick_confidence_net\models\alex_net\891_Examples_RGB\2_aug\bestmodel.hdf5"
-
+# checkpoint_model_path = r"H:\Datasets\Pluckt\pick_confidence_net\models\vggnet\1001_examples\1\bestmodel.hdf5"
 # get class labels
 imagePaths = list(paths.list_images(dataset_path))
 classNames = [pt.split(os.path.sep)[-2] for pt in imagePaths]
@@ -64,23 +90,24 @@ classNames = [str(x) for x in np.unique(classNames)]
 
 
 # init preprocessors
-roip = ROIPreprocessor(xmin=0, xmax=120, ymin=160, ymax=320)
-aap = AspectAwarePreprocessor(227, 227)
+roip = ROIPreprocessor(xmin=0, xmax=240, ymin=80, ymax=320)
+aap = AspectAwarePreprocessor(224, 224)
 iap = ImageToArrayPreprocessor()
 
 # load the dataset from disk then scale the raw pixels
-sdl = SimpleDatasetLoader(preprocessors=[aap, iap], img_load="mat")
+sdl = SimpleDatasetLoader(preprocessors=[roip, aap, iap]) #, img_load="mat")
 (data, labels) = sdl.load(imagePaths=imagePaths, verbose=250)
-# data = normalize_rgb(data)
-data = normalize_depth(data)
+data = normalize_rgb(data)
+# data = normalize_depth(data)
 
 # add data augmentation with image generator from keras.preprocessing.image import ImageDataGenerator
 aug = ImageDataGenerator(rotation_range=0.0, # randomly rotate +/- 30 deg
-                         width_shift_range=0.2, # translate by 0.1
+                         width_shift_range=0.05, # translate by 0.1
                          height_shift_range=0.05,
                          shear_range=0.0, # shear by 0.2
                          zoom_range=0.0, # zoom by [0.8 - 1.2] factory
                          horizontal_flip=False,
+                         # brightness_range=[0.9, 1.1],
                          fill_mode="nearest",
                          cval=0.0)
 
@@ -102,12 +129,12 @@ classWeight = float(classTotals.max()) / classTotals
 
 # Optimizer
 print("[info] compiling model...")
-opt = Adam(lr=1e-4)
-model = Alexnet.build(width=227,
-                      height=227,
-                      depth=1,
-                      classes=2,
-                      reg=0.0002)
+opt = RMSprop(lr=2e-5)
+# model = Alexnet.build(width=227,
+#                       height=227,
+#                       depth=1,
+#                       classes=2,
+#                       reg=0.0002)
 model.compile(loss="binary_crossentropy",
               optimizer=opt,
               metrics=["accuracy"])
@@ -132,16 +159,16 @@ callbacks = [checkpoint, TrainingMonitor(figPath, jsonPath=jsonPath)]
 #               callbacks=callbacks,
 #               verbose=1)
 
-H = model.fit_generator(aug.flow(trainX, trainY, batch_size=32),
+H = model.fit_generator(aug.flow(trainX, trainY, batch_size=16),
                         validation_data=(testX, testY),
-                        steps_per_epoch=len(trainX) // 32,
+                        steps_per_epoch=len(trainX) // 16,
                         epochs=epochs,
                         callbacks=callbacks,
                         verbose=1)
 
 # Load best model from training and make predictions on it
 model = load_model(model_path)
-predictions = model.predict(testX, batch_size=32)
+predictions = model.predict(testX, batch_size=16)
 print(classification_report(testY.argmax(axis=1), predictions.argmax(axis=1), target_names=classNames))
 
 plt.style.use("ggplot")
