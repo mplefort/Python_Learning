@@ -44,7 +44,7 @@ class TrainingMonitor(BaseLogger):
         # to file
         if self.jsonPath is not None:
             f = open(self.jsonPath, "w")
-            f.write(json.dumps(self.H))
+            f.write(json.dumps(str(self.H)))
             f.close()
 
         # ensure at least two epochs have passed before plotting
@@ -55,8 +55,8 @@ class TrainingMonitor(BaseLogger):
             plt.style.use("ggplot")
             plt.figure()
 
-            plt.plot(N, self.H["acc"], 'bo', label='Training acc')
-            plt.plot(N, self.H["val_acc"], 'b', label='Validation acc')
+            plt.plot(N, self.H["accuracy"], 'bo', label='Training acc')
+            plt.plot(N, self.H["val_accuracy"], 'b', label='Validation acc')
             plt.title("Training and Validation and Accuracy")
             plt.xlabel("Epoch #")
             plt.ylabel("Accuracy")

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-dataset_path = r"D:\matth\Documents\projects\python\datasets\17flowers"
+dataset_path = r"H:\Datasets\17flowers"
 
 # get class labels
 imagePaths = list(paths.list_images(dataset_path))
@@ -25,7 +25,7 @@ iap = ImageToArrayPreprocessor()
 
 # load the dataset from disk then scale the raw pixels
 sdl = SimpleDatasetLoader(preprocessors=[aap, iap])
-(data, labels) = sdl.load(imagePaths=imagePaths, verbose=250)
+(data, labels) = sdl.load(imagePaths=imagePaths[1:10], verbose=250)
 data = data.astype("float") / 255.0
 
 # partision data

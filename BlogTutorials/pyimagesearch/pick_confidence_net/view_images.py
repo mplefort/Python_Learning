@@ -23,17 +23,18 @@ def normalize_depth(data):
 def normalize_rgb(data):
     return data.astype("float") / 255.0
 
-dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
-# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
+# dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\rgb"
+dataset_path = r"H:\Datasets\Pluckt\pick_confidence_net\data\depth"
 imagePaths = list(paths.list_images(dataset_path))
 roip = ROIPreprocessor(xmin=0, xmax=240, ymin=80, ymax=320)
 aap = AspectAwarePreprocessor(224, 224)
 iap = ImageToArrayPreprocessor()
 
 # load the dataset from disk then scale the raw pixels
-sdl = SimpleDatasetLoader(preprocessors=[roip, aap, iap]) #, img_load="mat")
+# sdl = SimpleDatasetLoader(preprocessors=[roip, aap, iap]) #, img_load="mat")
+sdl = SimpleDatasetLoader(preprocessors=[], img_load="mat")
 (data, labels) = sdl.load(imagePaths=imagePaths, verbose=250)
-data = normalize_rgb(data)
+# data = normalize_rgb(data)
 
 # imagePaths = list(paths.list_images(dataset_path))
 # classNames = [pt.split(os.path.sep)[-2] for pt in imagePaths]

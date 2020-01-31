@@ -74,7 +74,7 @@ from keras.applications.vgg16 import preprocess_input, decode_predictions
 import numpy as np
 from keras import backend as K
 
-img_fn = "/home/matthewlefort/Pictures/Pic.jpg"
+img_fn = "D:\matth\Pictures\Portfolio\Headshot.jpg"
 img = cv2.imread(img_fn)
 img = cv2.resize(img, (224, 224))
 model = VGG16(weights="imagenet")
